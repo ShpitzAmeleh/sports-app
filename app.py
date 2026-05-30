@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+import os
 import urllib.request
 import json
 import re
@@ -129,4 +130,4 @@ def scores(league):
     return jsonify({'league': league, 'games': games})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
