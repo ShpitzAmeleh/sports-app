@@ -7,14 +7,15 @@ import re
 app = Flask(__name__)
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+SOCCER_LEAGUES = ['eng.1', 'fra.1', 'ger.1', 'esp.1', 'ita.1', 'uefa.champions']
 
-def normalize_status(status):
-    if not status:
+def normalize_status(status, state=''):
+    if not status and not state:
         return 'upcoming'
-    s = str(status).upper()
-    if any(key in s for key in ('IN_PROGRESS', 'LIVE', 'ACTIVE', 'PLAYING', 'INPROGRESS', 'LIVE_CLOCK')):
+    s = f"{status} {state}".lower()
+    if state in ('in', 'live') or any(key in s for key in ('in_progress', 'live', 'playing', 'halftime', '1st', '2nd', 'second half', 'first half', 'overtime', 'extra time', 'penalties', 'pen')):
         return 'live'
-    if any(key in s for key in ('FINAL', 'COMPLETED', 'DONE', 'CLOSED', 'ENDED', 'POSTGAME')):
+    if state in ('post', 'completed', 'complete', 'final', 'finished') or any(key in s for key in ('final', 'full_time', 'full time', 'post', 'complete', 'completed', 'ft', 'f/t', 'ended', 'after')):
         return 'finished'
     return 'upcoming'
 
@@ -86,32 +87,45 @@ def fallback_ufc():
     ]
 
 def get_soccer():
-    try:
-        html = fetch('https://www.espn.com/soccer/scoreboard')
-        games = []
-        match = re.search(r'"events":(\[.*?\])', html)
-        if match:
-            events = json.loads(match.group(1))
-            for e in events[:15]:
+    games = []
+    seen = set()
+    for league in SOCCER_LEAGUES:
+        try:
+            url = f'https://site.api.espn.com/apis/site/v2/sports/soccer/league/scoreboard?league={league}'
+            data = json.loads(fetch(url))
+            league_name = data.get('leagues', [{}])[0].get('name', league)
+            for e in data.get('events', [])[:30]:
                 comps = e.get('competitions', [{}])[0]
                 competitors = comps.get('competitors', [])
-                league_name = e.get('season', {}).get('slug', '')
-                if len(competitors) == 2:
-                    home = next((c for c in competitors if c.get('homeAway') == 'home'), competitors[0])
-                    away = next((c for c in competitors if c.get('homeAway') == 'away'), competitors[1])
-                    status = comps.get('status', {})
-                    status_name = status.get('type', {}).get('name') or status.get('type', {}).get('state') or ''
-                    status_norm = normalize_status(status_name)
-                    if status_norm == 'live':
-                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'live', 'homeScore': home.get('score','0'), 'awayScore': away.get('score','0'), 'league': league_name})
-                    elif status_norm == 'finished':
-                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'finished', 'homeScore': home.get('score','0'), 'awayScore': away.get('score','0'), 'league': league_name})
-                    else:
-                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': e.get('date','TBD'), 'league': league_name})
-        return games if games else fallback_soccer()
-    except Exception as ex:
-        print('Soccer error:', ex)
-        return fallback_soccer()
+                if len(competitors) != 2:
+                    continue
+                home = next((c for c in competitors if c.get('homeAway') == 'home'), competitors[0])
+                away = next((c for c in competitors if c.get('homeAway') == 'away'), competitors[1])
+                match_key = (home.get('team', {}).get('id'), away.get('team', {}).get('id'), e.get('date') or comps.get('date', ''))
+                if match_key in seen:
+                    continue
+                seen.add(match_key)
+                status = comps.get('status', {})
+                status_type = status.get('type', {})
+                status_name = status_type.get('name') or status_type.get('description') or status_type.get('detail') or ''
+                status_state = status_type.get('state') or ''
+                status_norm = normalize_status(status_name, status_state)
+                game = {
+                    'home': home.get('team', {}).get('displayName', 'Home'),
+                    'away': away.get('team', {}).get('displayName', 'Away'),
+                    'status': status_norm,
+                    'homeScore': home.get('score', '0'),
+                    'awayScore': away.get('score', '0'),
+                    'league': league_name,
+                    'time': e.get('date') or comps.get('date', ''),
+                    'clock': status.get('displayClock') or status_type.get('detail') or status_type.get('shortDetail') or '',
+                    'statusDetail': status_type.get('detail') or status_type.get('description') or '',
+                }
+                games.append(game)
+        except Exception as ex:
+            print(f'Soccer league fetch error for {league}:', ex)
+            continue
+    return games if games else fallback_soccer()
 
 def fallback_soccer():
     return [
