@@ -78,7 +78,7 @@
     <button class="tab-btn" id="btn-nba" onclick="load('nba')">🏀 NBA</button>
     <button class="tab-btn" id="btn-ufc" onclick="load('ufc')">🥊 UFC</button>
     <button class="tab-btn" id="btn-soccer" onclick="load('soccer')">⚽ Football</button>
-    <button class="tab-btn" id="btn-news" onclick="load('news')">📰 News</button>
+    <button class="tab-btn" id="btn-news" onclick="load('news')">📰 Sports News</button>
   </div>
 
   <div class="search-bar">
@@ -110,7 +110,7 @@
         const data = await res.json();
         allNews = data.news || [];
         renderNews(allNews);
-        document.getElementById('last-update').textContent = 'News updated: ' + new Date().toLocaleTimeString();
+        document.getElementById('last-update').textContent = 'Sports News updated: ' + new Date().toLocaleTimeString();
         if (typeof scheduleRefresh === 'function') scheduleRefresh(allNews);
       } else {
         const res = await fetch('/api/scores/' + league);
@@ -245,7 +245,7 @@
       document.getElementById('content').innerHTML = html;
       return;
     }
-    html += '<div class="section-label">📰 Latest News</div>';
+    html += '<div class="section-label">📰 Sports News</div>';
     items.forEach((n, i) => {
       html += `\n      <div class="game upcoming" onclick="window.open('${n.link}','_blank')">\n        <div class="game-left">\n          <div class="teams">${n.title}</div>\n          <div class="league-tag">Source: ${n.source}</div>\n        </div>\n        <div class="time"><a href="${n.link}" target="_blank" style="color:inherit;text-decoration:none">Open</a></div>\n      </div>`;
     });
