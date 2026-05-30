@@ -17,7 +17,7 @@
     .site-title { font-size: 28px; font-weight: bold; }
     .site-subtitle { font-size: 13px; color: #555; font-style: italic; margin-top: 4px; }
     .logo-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .logo { width: 50px; height: auto; border-radius: 12px; background: #1a1d2e; padding: 8px; }
+    .logo { width: 54px; height: 54px; border-radius: 9999px; object-fit: cover; background: #1a1d2e; padding: 4px; }
 
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .tab-btn { padding: 10px 24px; border: 1px solid #333; border-radius: 8px; background: #1a1d2e; color: white; cursor: pointer; font-size: 15px; }
@@ -94,7 +94,7 @@
 
   <div class="header">
     <div class="logo-group">
-      <img class="logo" src="/static/logo.svg" alt="Shpitz ent. logo" />
+      <img id="logo-img" class="logo" src="/static/logo.svg" alt="Shpitz ent. logo" />
       <div>
         <div class="site-title">⚡ Shpitz ent.</div>
         <div class="site-subtitle">all praise shpitz the III</div>
@@ -132,6 +132,16 @@
   let favOnly = false;
   let lightMode = false;
   let notifiedGames = new Set();
+
+  // If a custom logo image is uploaded as static/logo.png, use it instead.
+  const logoImg = document.getElementById('logo-img');
+  if (logoImg) {
+    const pngLogo = '/static/logo.png';
+    const testLogo = new Image();
+    testLogo.onload = () => { logoImg.src = pngLogo; };
+    testLogo.onerror = () => {};
+    testLogo.src = pngLogo;
+  }
 
   async function load(league) {
     currentLeague = league;
