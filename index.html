@@ -119,17 +119,25 @@
   function parseGameDate(timeStr) {
     if (!timeStr) return null;
     try {
-      // Try parsing various date formats from the games
-      // Format 1: "Sun May 31, 3:00 AM - Game 7"
-      // Format 2: "Thu Jun 11, 2026"
-      // Format 3: "Today 19:00"
-      
-      if (timeStr.toLowerCase().includes('today')) {
-        return new Date();
+      // Try parsing ISO/RFC date strings first
+      const parsed = Date.parse(timeStr);
+      if (!isNaN(parsed)) return new Date(parsed);
+
+      // Handle 'Today HH:MM' formats
+      const lower = timeStr.toLowerCase();
+      if (lower.includes('today')) {
+        const tm = timeStr.match(/(\d{1,2}:\d{2})/);
+        const d = new Date();
+        if (tm) {
+          const [hh, mm] = tm[1].split(':').map(Number);
+          d.setHours(hh, mm, 0, 0);
+          return d;
+        }
+        return d;
       }
-      
-      // Try to extract date parts
-      const dateMatch = timeStr.match(/(\w+)\s+(\w+)\s+(\d+),?\s+(\d{4})?/);
+
+      // Try to extract date parts like "Sun May 31, 3:00 AM - Game 7" or "Thu Jun 11, 2026"
+      const dateMatch = timeStr.match(/(\w+)\s+(\w+)\s+(\d+),?\s*(\d{4})?/);
       if (dateMatch) {
         const [, dayName, month, day, year] = dateMatch;
         const fullYear = year || new Date().getFullYear();
@@ -137,10 +145,30 @@
         const date = new Date(dateStr);
         return isNaN(date.getTime()) ? null : date;
       }
-      
+
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  function formatToIsraelTime(timeStr) {
+    if (!timeStr) return '';
+    const dt = parseGameDate(timeStr);
+    if (!dt) return timeStr;
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Jerusalem',
+        timeZoneName: 'short'
+      }).format(dt);
+    } catch (e) {
+      return dt.toString();
     }
   }
 
@@ -207,7 +235,7 @@
       : g.home;
 
     const scoreOrTime = status === 'scheduled'
-      ? `<div class="time">🕐 ${g.time || 'TBD'}</div>`
+      ? `<div class="time">🕐 ${formatToIsraelTime(g.time) || 'TBD'}</div>`
       : (g.homeScore !== undefined && g.awayScore !== undefined)
       ? `<div class="score">${g.homeScore} - ${g.awayScore}</div>`
       : '';
@@ -223,7 +251,7 @@
         <div class="game-left">
           <div class="teams">${teamsHtml}</div>
           ${g.league ? `<div class="league-tag">🏆 ${g.league}</div>` : ''}
-          ${g.time ? `<div class="game-date">📅 ${g.time}</div>` : ''}
+          ${g.time ? `<div class="game-date">📅 ${formatToIsraelTime(g.time)}</div>` : ''}
         </div>
         ${scoreOrTime}
         ${badge}
@@ -234,7 +262,7 @@
       <div class="details" id="details-${idx}">
         <p>🥊 <strong>${teamsHtml}</strong></p>
         ${g.league ? `<p>🏆 Competition: ${g.league}</p>` : ''}
-        ${g.time ? `<p>📅 Date & Time: ${g.time}</p>` : ''}
+        ${g.time ? `<p>📅 Date & Time: ${formatToIsraelTime(g.time)}</p>` : ''}
         ${status !== 'scheduled' && g.homeScore !== undefined ? `<p>📊 Score: ${g.homeScore} - ${g.awayScore}</p>` : ''}
         <p>📌 Status: ${status === 'live' ? '🔴 Live now' : status === 'finished' ? '✅ Final' : '⏳ Upcoming'}</p>
       </div>`;
