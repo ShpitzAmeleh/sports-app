@@ -78,6 +78,7 @@
     <button class="tab-btn" id="btn-nba" onclick="load('nba')">🏀 NBA</button>
     <button class="tab-btn" id="btn-ufc" onclick="load('ufc')">🥊 UFC</button>
     <button class="tab-btn" id="btn-soccer" onclick="load('soccer')">⚽ Football</button>
+    <button class="tab-btn" id="btn-news" onclick="load('news')">📰 News</button>
   </div>
 
   <div class="search-bar">
@@ -91,6 +92,7 @@
 <script>
   let currentLeague = 'nba';
   let allGames = [];
+  let allNews = [];
   let favorites = JSON.parse(localStorage.getItem('favs') || '[]');
   let notificationsOn = false;
   let favOnly = false;
@@ -103,14 +105,22 @@
     document.getElementById('btn-' + league).classList.add('active');
     document.getElementById('content').innerHTML = '<p style="color:#888;margin-top:20px">Loading...</p>';
     try {
-      const res = await fetch('/api/scores/' + league);
-      const data = await res.json();
-      allGames = data.games || [];
-      checkNotifications(allGames);
-      render(allGames);
-      document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-      // Adjust refresh interval based on live games
-      if (typeof scheduleRefresh === 'function') scheduleRefresh(allGames);
+      if (league === 'news') {
+        const res = await fetch('/api/news');
+        const data = await res.json();
+        allNews = data.news || [];
+        renderNews(allNews);
+        document.getElementById('last-update').textContent = 'News updated: ' + new Date().toLocaleTimeString();
+        if (typeof scheduleRefresh === 'function') scheduleRefresh(allNews);
+      } else {
+        const res = await fetch('/api/scores/' + league);
+        const data = await res.json();
+        allGames = data.games || [];
+        checkNotifications(allGames);
+        render(allGames);
+        document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        if (typeof scheduleRefresh === 'function') scheduleRefresh(allGames);
+      }
     } catch(e) {
       document.getElementById('content').innerHTML = '<p style="color:#f87171">Error loading data</p>';
     }
@@ -208,7 +218,7 @@
     }
 
     const live = filtered.filter(g => g.status === 'live');
-    const upcoming = filtered.filter(g => g.status === 'scheduled');
+    const upcoming = filtered.filter(g => g.status === 'upcoming');
     const finished = filtered.filter(g => g.status === 'finished');
 
     let html = '';
@@ -228,13 +238,27 @@
     document.getElementById('content').innerHTML = html;
   }
 
+  function renderNews(items) {
+    let html = '';
+    if (!items || !items.length) {
+      html = '<p style="color:#888;margin-top:20px">No news found</p>';
+      document.getElementById('content').innerHTML = html;
+      return;
+    }
+    html += '<div class="section-label">📰 Latest News</div>';
+    items.forEach((n, i) => {
+      html += `\n      <div class="game upcoming" onclick="window.open('${n.link}','_blank')">\n        <div class="game-left">\n          <div class="teams">${n.title}</div>\n          <div class="league-tag">Source: ${n.source}</div>\n        </div>\n        <div class="time"><a href="${n.link}" target="_blank" style="color:inherit;text-decoration:none">Open</a></div>\n      </div>`;
+    });
+    document.getElementById('content').innerHTML = html;
+  }
+
   function gameCard(g, status, idx) {
     const isFav = favorites.includes(g.home) || favorites.includes(g.away);
     const teamsHtml = g.away
       ? `${g.home} <span class="vs">VS</span> ${g.away}`
       : g.home;
 
-    const scoreOrTime = status === 'scheduled'
+    const scoreOrTime = status === 'upcoming'
       ? `<div class="time">🕐 ${formatToIsraelTime(g.time) || 'TBD'}</div>`
       : (g.homeScore !== undefined && g.awayScore !== undefined)
       ? `<div class="score">${g.homeScore} - ${g.awayScore}</div>`
@@ -247,7 +271,7 @@
       : '';
 
     return `
-      <div class="game ${status === 'live' ? 'live-game' : status === 'scheduled' ? 'upcoming' : ''}" onclick="toggleDetails(${idx})">
+      <div class="game ${status === 'live' ? 'live-game' : status === 'upcoming' ? 'upcoming' : ''}" onclick="toggleDetails(${idx})">
         <div class="game-left">
           <div class="teams">${teamsHtml}</div>
           ${g.league ? `<div class="league-tag">🏆 ${g.league}</div>` : ''}
@@ -263,7 +287,7 @@
         <p>🥊 <strong>${teamsHtml}</strong></p>
         ${g.league ? `<p>🏆 Competition: ${g.league}</p>` : ''}
         ${g.time ? `<p>📅 Date & Time: ${formatToIsraelTime(g.time)}</p>` : ''}
-        ${status !== 'scheduled' && g.homeScore !== undefined ? `<p>📊 Score: ${g.homeScore} - ${g.awayScore}</p>` : ''}
+        ${status !== 'upcoming' && g.homeScore !== undefined ? `<p>📊 Score: ${g.homeScore} - ${g.awayScore}</p>` : ''}
         <p>📌 Status: ${status === 'live' ? '🔴 Live now' : status === 'finished' ? '✅ Final' : '⏳ Upcoming'}</p>
       </div>`;
   }

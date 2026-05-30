@@ -33,8 +33,8 @@ def get_nba():
                     elif status == 'STATUS_FINAL':
                         games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'finished', 'homeScore': home.get('score','0'), 'awayScore': away.get('score','0')})
                     else:
-                        date = e.get('date','')
-                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'scheduled', 'time': date})
+                            games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': e.get('date','TBD'), 'league': league_name})
+                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': date})
         return games if games else fallback_nba()
     except Exception as ex:
         print('NBA error:', ex)
@@ -42,10 +42,10 @@ def get_nba():
 
 def fallback_nba():
     return [
-        {'home': 'Oklahoma City Thunder', 'away': 'San Antonio Spurs', 'status': 'scheduled', 'time': 'Sun May 31, 3:00 AM - Game 7'},
-        {'home': 'TBD', 'away': 'New York Knicks', 'status': 'scheduled', 'time': 'Thu Jun 4 - NBA Finals Game 1'},
-        {'home': 'TBD', 'away': 'New York Knicks', 'status': 'scheduled', 'time': 'Sat Jun 6 - NBA Finals Game 2'},
-        {'home': 'New York Knicks', 'away': 'TBD', 'status': 'scheduled', 'time': 'Tue Jun 9 - NBA Finals Game 3'},
+        {'home': 'Oklahoma City Thunder', 'away': 'San Antonio Spurs', 'status': 'upcoming', 'time': 'Sun May 31, 3:00 AM - Game 7'},
+        {'home': 'TBD', 'away': 'New York Knicks', 'status': 'upcoming', 'time': 'Thu Jun 4 - NBA Finals Game 1'},
+        {'home': 'TBD', 'away': 'New York Knicks', 'status': 'upcoming', 'time': 'Sat Jun 6 - NBA Finals Game 2'},
+        {'home': 'New York Knicks', 'away': 'TBD', 'status': 'upcoming', 'time': 'Tue Jun 9 - NBA Finals Game 3'},
         {'home': 'San Antonio Spurs', 'away': 'OKC Thunder', 'status': 'finished', 'homeScore': 118, 'awayScore': 91},
         {'home': 'New York Knicks', 'away': 'Cleveland', 'status': 'finished', 'homeScore': 130, 'awayScore': 93},
     ]
@@ -58,7 +58,7 @@ def get_ufc():
         for name, date in matches[:6]:
             name = re.sub(r'<[^>]+>', '', name).strip()
             date = re.sub(r'<[^>]+>', '', date).strip()
-            events.append({'home': name, 'away': '', 'status': 'scheduled', 'time': date})
+            events.append({'home': name, 'away': '', 'status': 'upcoming', 'time': date})
         return events if events else fallback_ufc()
     except Exception as ex:
         print('UFC error:', ex)
@@ -66,10 +66,10 @@ def get_ufc():
 
 def fallback_ufc():
     return [
-        {'home': 'UFC 316', 'away': 'Islam Makhachev vs Arman Tsarukyan', 'status': 'scheduled', 'time': 'Sat May 30, 2026'},
-        {'home': 'UFC 317', 'away': 'Card TBD', 'status': 'scheduled', 'time': 'Sat Jun 7, 2026'},
-        {'home': 'UFC Fight Night', 'away': 'Card TBD', 'status': 'scheduled', 'time': 'Sat Jun 14, 2026'},
-        {'home': 'UFC Fight Night', 'away': 'Card TBD', 'status': 'scheduled', 'time': 'Sat Jun 21, 2026'},
+        {'home': 'UFC 316', 'away': 'Islam Makhachev vs Arman Tsarukyan', 'status': 'upcoming', 'time': 'Sat May 30, 2026'},
+        {'home': 'UFC 317', 'away': 'Card TBD', 'status': 'upcoming', 'time': 'Sat Jun 7, 2026'},
+        {'home': 'UFC Fight Night', 'away': 'Card TBD', 'status': 'upcoming', 'time': 'Sat Jun 14, 2026'},
+        {'home': 'UFC Fight Night', 'away': 'Card TBD', 'status': 'upcoming', 'time': 'Sat Jun 21, 2026'},
     ]
 
 def get_soccer():
@@ -92,7 +92,7 @@ def get_soccer():
                     elif status == 'STATUS_FINAL':
                         games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'finished', 'homeScore': home.get('score','0'), 'awayScore': away.get('score','0'), 'league': league_name})
                     else:
-                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'scheduled', 'time': e.get('date','TBD'), 'league': league_name})
+                        games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': e.get('date','TBD'), 'league': league_name})
         return games if games else fallback_soccer()
     except Exception as ex:
         print('Soccer error:', ex)
@@ -100,17 +100,57 @@ def get_soccer():
 
 def fallback_soccer():
     return [
-        {'home': 'PSG', 'away': 'Arsenal', 'status': 'scheduled', 'time': 'Today 19:00', 'league': 'Champions League Final'},
-        {'home': 'World Cup 2026', 'away': 'Group Stage Begins', 'status': 'scheduled', 'time': 'Thu Jun 11, 2026', 'league': 'FIFA World Cup'},
-        {'home': 'World Cup 2026', 'away': 'Round of 16', 'status': 'scheduled', 'time': 'Sat Jun 27, 2026', 'league': 'FIFA World Cup'},
-        {'home': 'World Cup 2026', 'away': 'Quarter Finals', 'status': 'scheduled', 'time': 'Fri Jul 3, 2026', 'league': 'FIFA World Cup'},
-        {'home': 'World Cup 2026', 'away': 'Semi Finals', 'status': 'scheduled', 'time': 'Tue Jul 14, 2026', 'league': 'FIFA World Cup'},
-        {'home': 'World Cup 2026', 'away': 'Final', 'status': 'scheduled', 'time': 'Sun Jul 19, 2026', 'league': 'FIFA World Cup'},
+        {'home': 'PSG', 'away': 'Arsenal', 'status': 'upcoming', 'time': 'Today 19:00', 'league': 'Champions League Final'},
+        {'home': 'World Cup 2026', 'away': 'Group Stage Begins', 'status': 'upcoming', 'time': 'Thu Jun 11, 2026', 'league': 'FIFA World Cup'},
+        {'home': 'World Cup 2026', 'away': 'Round of 16', 'status': 'upcoming', 'time': 'Sat Jun 27, 2026', 'league': 'FIFA World Cup'},
+        {'home': 'World Cup 2026', 'away': 'Quarter Finals', 'status': 'upcoming', 'time': 'Fri Jul 3, 2026', 'league': 'FIFA World Cup'},
+        {'home': 'World Cup 2026', 'away': 'Semi Finals', 'status': 'upcoming', 'time': 'Tue Jul 14, 2026', 'league': 'FIFA World Cup'},
+        {'home': 'World Cup 2026', 'away': 'Final', 'status': 'upcoming', 'time': 'Sun Jul 19, 2026', 'league': 'FIFA World Cup'},
         {'home': 'Brighton', 'away': 'Man United', 'status': 'finished', 'homeScore': 0, 'awayScore': 3, 'league': 'Premier League'},
         {'home': 'Crystal Palace', 'away': 'Arsenal', 'status': 'finished', 'homeScore': 1, 'awayScore': 2, 'league': 'Premier League'},
         {'home': 'Man City', 'away': 'Aston Villa', 'status': 'finished', 'homeScore': 1, 'awayScore': 2, 'league': 'Premier League'},
         {'home': 'Sunderland', 'away': 'Chelsea', 'status': 'finished', 'homeScore': 2, 'awayScore': 1, 'league': 'Premier League'},
     ]
+
+def get_news():
+    try:
+        html = fetch('https://www.espn.com')
+        items = []
+        # find anchors and headlines
+        matches = re.findall(r'<a[^>]+href="([^\"]+)"[^>]*>(.*?)</a>', html, re.DOTALL|re.IGNORECASE)
+        whitelist = ['espn.com', 'www.espn.com', 'nba.com', 'www.nba.com', 'ufc.com', 'www.ufc.com', 'mlb.com', 'nhl.com']
+        for href, text in matches:
+            title = re.sub(r'<[^>]+>', '', text).strip()
+            if not title: continue
+            lower = title.lower()
+            if any(k in lower for k in ('injury', 'injuries', 'injured', 'trade', 'traded')):
+                # normalize href
+                if href.startswith('//'):
+                    href = 'https:' + href
+                if href.startswith('/'):
+                    href = 'https://www.espn.com' + href
+                domain_match = re.match(r'https?://([^/]+)', href)
+                domain = domain_match.group(1) if domain_match else ''
+                if any(w in domain for w in whitelist):
+                    items.append({'title': title, 'link': href, 'source': domain})
+        # dedupe by link
+        seen = set()
+        out = []
+        for it in items:
+            if it['link'] in seen: continue
+            seen.add(it['link'])
+            out.append(it)
+            if len(out) >= 20: break
+        return out
+    except Exception as ex:
+        print('News error:', ex)
+        return []
+
+
+@app.route('/api/news')
+def news():
+    items = get_news()
+    return jsonify({'news': items})
 
 @app.route('/')
 def home():
