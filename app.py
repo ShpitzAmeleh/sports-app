@@ -33,7 +33,7 @@ def get_nba():
                     elif status == 'STATUS_FINAL':
                         games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'finished', 'homeScore': home.get('score','0'), 'awayScore': away.get('score','0')})
                     else:
-                            games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': e.get('date','TBD'), 'league': league_name})
+                        date = e.get('date','')
                         games.append({'home': home['team']['displayName'], 'away': away['team']['displayName'], 'status': 'upcoming', 'time': date})
         return games if games else fallback_nba()
     except Exception as ex:
