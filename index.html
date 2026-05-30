@@ -109,6 +109,8 @@
       checkNotifications(allGames);
       render(allGames);
       document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+      // Adjust refresh interval based on live games
+      if (typeof scheduleRefresh === 'function') scheduleRefresh(allGames);
     } catch(e) {
       document.getElementById('content').innerHTML = '<p style="color:#f87171">Error loading data</p>';
     }
@@ -292,8 +294,22 @@
     });
   }
 
+  // Initial load
   load('nba');
-  setInterval(() => load(currentLeague), 60000);
+
+  // Adaptive refresh: faster when there are live games
+  let refreshTimerId = null;
+  const defaultInterval = 60000; // 60s
+  const liveInterval = 5000; // 5s when live games present
+
+  function scheduleRefresh(games) {
+    if (refreshTimerId) clearTimeout(refreshTimerId);
+    const hasLive = (games || []).some(g => g && g.status === 'live');
+    const interval = hasLive ? liveInterval : defaultInterval;
+    refreshTimerId = setTimeout(() => {
+      load(currentLeague);
+    }, interval);
+  }
 </script>
 </body>
 </html>
