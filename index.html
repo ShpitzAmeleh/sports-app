@@ -22,8 +22,10 @@
     .tab-btn:hover { background: #252840; }
 
     .search-bar { margin-bottom: 20px; }
-    .search-bar input { width: 100%; max-width: 400px; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1d2e; color: white; font-size: 14px; outline: none; }
+    .search-bar input { padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1d2e; color: white; font-size: 14px; outline: none; margin-right: 8px; }
     .search-bar input:focus { border-color: #4a4fff; }
+    .search-bar input[type="text"] { width: 100%; max-width: 400px; }
+    .search-bar input[type="date"] { width: auto; }
 
     .section-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; }
 
@@ -80,6 +82,8 @@
 
   <div class="search-bar">
     <input type="text" id="search" placeholder="🔍 Search team..." oninput="render(allGames)" />
+    <input type="date" id="date-start" onchange="render(allGames)" title="Start date" style="margin-left: 10px; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1d2e; color: white; font-size: 14px; outline: none; cursor: pointer;" />
+    <input type="date" id="date-end" onchange="render(allGames)" title="End date" style="margin-left: 10px; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1d2e; color: white; font-size: 14px; outline: none; cursor: pointer;" />
   </div>
 
   <div id="content"></div>
@@ -110,11 +114,68 @@
     }
   }
 
+  function parseGameDate(timeStr) {
+    if (!timeStr) return null;
+    try {
+      // Try parsing various date formats from the games
+      // Format 1: "Sun May 31, 3:00 AM - Game 7"
+      // Format 2: "Thu Jun 11, 2026"
+      // Format 3: "Today 19:00"
+      
+      if (timeStr.toLowerCase().includes('today')) {
+        return new Date();
+      }
+      
+      // Try to extract date parts
+      const dateMatch = timeStr.match(/(\w+)\s+(\w+)\s+(\d+),?\s+(\d{4})?/);
+      if (dateMatch) {
+        const [, dayName, month, day, year] = dateMatch;
+        const fullYear = year || new Date().getFullYear();
+        const dateStr = `${month} ${day}, ${fullYear}`;
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+      }
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function isDateInRange(gameDate, startDate, endDate) {
+    if (!gameDate) return true; // Show games without dates
+    if (startDate && gameDate < startDate) return false;
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (gameDate > endOfDay) return false;
+    }
+    return true;
+  }
+
   function render(games) {
     const q = document.getElementById('search').value.toLowerCase();
+    const startDateInput = document.getElementById('date-start').value;
+    const endDateInput = document.getElementById('date-end').value;
+    
+    const startDate = startDateInput ? new Date(startDateInput) : null;
+    const endDate = endDateInput ? new Date(endDateInput) : null;
+    
     let filtered = [...games];
+    
+    // Text search filter
     if (q) filtered = filtered.filter(g => g.home.toLowerCase().includes(q) || g.away.toLowerCase().includes(q));
+    
+    // Favorites filter
     if (favOnly) filtered = filtered.filter(g => favorites.includes(g.home) || favorites.includes(g.away));
+    
+    // Date range filter
+    if (startDate || endDate) {
+      filtered = filtered.filter(g => {
+        const gameDate = parseGameDate(g.time);
+        return isDateInRange(gameDate, startDate, endDate);
+      });
+    }
 
     const live = filtered.filter(g => g.status === 'live');
     const upcoming = filtered.filter(g => g.status === 'scheduled');
