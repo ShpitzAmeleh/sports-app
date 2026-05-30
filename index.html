@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shpitz ent.</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial; background: #0f1117; color: white; padding: 20px; }
+    body { font-family: Arial, sans-serif; background: #0f1117; color: white; padding: 16px; }
 
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 10px; }
     .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -57,6 +58,33 @@
     body.light .search-bar input { background: white; color: #111; border-color: #ddd; }
     body.light .details { background: #e8eaf0; }
     body.light .site-subtitle { color: #999; }
+
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .site-title { font-size: 24px; }
+      .site-subtitle { font-size: 12px; }
+      .tabs { gap: 8px; }
+      .tab-btn { flex: 1 1 140px; padding: 10px 14px; font-size: 14px; }
+      .search-bar { display: grid; gap: 10px; }
+      .search-bar input[type="text"], .search-bar input[type="date"] { width: 100%; margin-right: 0; }
+      .game { flex-direction: column; align-items: stretch; padding: 14px; }
+      .game-left { width: 100%; }
+      .game-date, .league-tag, .time, .score { width: 100%; }
+      .score { text-align: left; }
+      .game { max-width: 100%; }
+      .details { max-width: 100%; }
+      .header-controls { width: 100%; justify-content: flex-start; }
+      .refresh-info { font-size: 12px; }
+    }
+
+    @media (max-width: 480px) {
+      .tab-btn { padding: 10px 12px; font-size: 13px; }
+      .icon-btn { padding: 8px 10px; font-size: 13px; }
+      .teams { font-size: 14px; }
+      .time { font-size: 13px; }
+      .score { font-size: 20px; }
+      .search-bar input { font-size: 13px; }
+    }
   </style>
 </head>
 <body>
