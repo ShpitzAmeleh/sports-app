@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shpitz ent.</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial; background: #0f1117; color: white; padding: 20px; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 10px; }
+    .header-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .icon-btn { background: #1a1d2e; border: 1px solid #333; border-radius: 8px; color: white; padding: 8px 14px; cursor: pointer; font-size: 14px; }
+    .icon-btn:hover { background: #252840; }
+    .icon-btn.on { background: #4a4fff; border-color: #4a4fff; }
+    .refresh-info { font-size: 12px; color: #555; }
+    .site-title { font-size: 28px; font-weight: bold; }
+    .site-subtitle { font-size: 13px; color: #555; font-style: italic; margin-bottom: 20px; margin-top: 4px; }
+
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { padding: 10px 24px; border: 1px solid #333; border-radius: 8px; background: #1a1d2e; color: white; cursor: pointer; font-size: 15px; }
+    .tab-btn.active { background: #4a4fff; border-color: #4a4fff; }
+    .tab-btn:hover { background: #252840; }
+
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input { width: 100%; max-width: 400px; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1d2e; color: white; font-size: 14px; outline: none; }
+    .search-bar input:focus { border-color: #4a4fff; }
+
+    .section-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; }
+
+    .game { background: #1a1d2e; border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; max-width: 700px; display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; transition: background 0.15s; }
+    .game:hover { background: #1e2238; }
+    .game.upcoming { border-left: 3px solid #4ade80; }
+    .game.live-game { border-left: 3px solid #f87171; }
+    .game-left { flex: 1; }
+    .teams { font-size: 15px; line-height: 1.5; }
+    .vs { color: #f87171; font-size: 17px; font-weight: bold; margin: 0 4px; }
+    .league-tag { font-size: 11px; color: #555; margin-top: 3px; }
+    .game-date { font-size: 12px; color: #888; margin-top: 3px; }
+    .time { color: #4ade80; font-size: 14px; font-weight: bold; }
+    .score { font-size: 22px; font-weight: bold; min-width: 70px; text-align: center; }
+    .finished-label { color: #555; font-size: 12px; }
+    .live-badge { color: #f87171; font-weight: bold; font-size: 13px; }
+    .star-btn { background: none; border: none; font-size: 18px; cursor: pointer; opacity: 0.4; transition: opacity 0.15s; }
+    .star-btn:hover, .star-btn.fav { opacity: 1; }
+
+    .details { display: none; background: #12151f; border-radius: 8px; padding: 12px 16px; margin-top: 6px; margin-bottom: 4px; font-size: 13px; color: #aaa; max-width: 700px; }
+    .details.open { display: block; }
+    .details p { margin-bottom: 4px; }
+
+    body.light { background: #f0f2f5; color: #111; }
+    body.light .game { background: white; }
+    body.light .tab-btn { background: white; color: #111; border-color: #ddd; }
+    body.light .tab-btn.active { background: #4a4fff; color: white; }
+    body.light .icon-btn { background: white; color: #111; border-color: #ddd; }
+    body.light .search-bar input { background: white; color: #111; border-color: #ddd; }
+    body.light .details { background: #e8eaf0; }
+    body.light .site-subtitle { color: #999; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="site-title">⚡ Shpitz ent.</div>
+    </div>
+    <div class="header-controls">
+      <span class="refresh-info" id="last-update"></span>
+      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()">☀️ Light</button>
+      <button class="icon-btn" id="notif-btn" onclick="toggleNotifications()">🔔 Alerts</button>
+      <button class="icon-btn" id="fav-btn" onclick="toggleFavOnly()">⭐ Favorites</button>
+    </div>
+  </div>
+  <div class="site-subtitle">all praise shpitz the III</div>
+
+  <div class="tabs">
+    <button class="tab-btn" id="btn-nba" onclick="load('nba')">🏀 NBA</button>
+    <button class="tab-btn" id="btn-ufc" onclick="load('ufc')">🥊 UFC</button>
+    <button class="tab-btn" id="btn-soccer" onclick="load('soccer')">⚽ Football</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="🔍 Search team..." oninput="render(allGames)" />
+  </div>
+
+  <div id="content"></div>
+
+<script>
+  let currentLeague = 'nba';
+  let allGames = [];
+  let favorites = JSON.parse(localStorage.getItem('favs') || '[]');
+  let notificationsOn = false;
+  let favOnly = false;
+  let lightMode = false;
+  let notifiedGames = new Set();
+
+  async function load(league) {
+    currentLeague = league;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + league).classList.add('active');
+    document.getElementById('content').innerHTML = '<p style="color:#888;margin-top:20px">Loading...</p>';
+    try {
+      const res = await fetch('/api/scores/' + league);
+      const data = await res.json();
+      allGames = data.games || [];
+      checkNotifications(allGames);
+      render(allGames);
+      document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    } catch(e) {
+      document.getElementById('content').innerHTML = '<p style="color:#f87171">Error loading data</p>';
+    }
+  }
+
+  function render(games) {
+    const q = document.getElementById('search').value.toLowerCase();
+    let filtered = [...games];
+    if (q) filtered = filtered.filter(g => g.home.toLowerCase().includes(q) || g.away.toLowerCase().includes(q));
+    if (favOnly) filtered = filtered.filter(g => favorites.includes(g.home) || favorites.includes(g.away));
+
+    const live = filtered.filter(g => g.status === 'live');
+    const upcoming = filtered.filter(g => g.status === 'scheduled');
+    const finished = filtered.filter(g => g.status === 'finished');
+
+    let html = '';
+    if (live.length) {
+      html += '<div class="section-label">🔴 Live Now</div>';
+      live.forEach((g, i) => html += gameCard(g, 'live', i));
+    }
+    if (upcoming.length) {
+      html += '<div class="section-label">🟢 Upcoming</div>';
+      upcoming.forEach((g, i) => html += gameCard(g, 'upcoming', i + 1000));
+    }
+    if (finished.length) {
+      html += '<div class="section-label">⚪ Recent Results</div>';
+      finished.forEach((g, i) => html += gameCard(g, 'finished', i + 2000));
+    }
+    if (!html) html = '<p style="color:#888;margin-top:20px">No games found</p>';
+    document.getElementById('content').innerHTML = html;
+  }
+
+  function gameCard(g, status, idx) {
+    const isFav = favorites.includes(g.home) || favorites.includes(g.away);
+    const teamsHtml = g.away
+      ? `${g.home} <span class="vs">VS</span> ${g.away}`
+      : g.home;
+
+    const scoreOrTime = status === 'scheduled'
+      ? `<div class="time">🕐 ${g.time || 'TBD'}</div>`
+      : (g.homeScore !== undefined && g.awayScore !== undefined)
+      ? `<div class="score">${g.homeScore} - ${g.awayScore}</div>`
+      : '';
+
+    const badge = status === 'live'
+      ? `<div class="live-badge">● LIVE</div>`
+      : status === 'finished'
+      ? `<div class="finished-label">Final</div>`
+      : '';
+
+    return `
+      <div class="game ${status === 'live' ? 'live-game' : status === 'scheduled' ? 'upcoming' : ''}" onclick="toggleDetails(${idx})">
+        <div class="game-left">
+          <div class="teams">${teamsHtml}</div>
+          ${g.league ? `<div class="league-tag">🏆 ${g.league}</div>` : ''}
+          ${g.time ? `<div class="game-date">📅 ${g.time}</div>` : ''}
+        </div>
+        ${scoreOrTime}
+        ${badge}
+        <button class="star-btn ${isFav ? 'fav' : ''}" onclick="toggleFav(event,'${g.home.replace(/'/g,"\\'")}','${(g.away||'').replace(/'/g,"\\'")}')">
+          ${isFav ? '⭐' : '☆'}
+        </button>
+      </div>
+      <div class="details" id="details-${idx}">
+        <p>🥊 <strong>${teamsHtml}</strong></p>
+        ${g.league ? `<p>🏆 Competition: ${g.league}</p>` : ''}
+        ${g.time ? `<p>📅 Date & Time: ${g.time}</p>` : ''}
+        ${status !== 'scheduled' && g.homeScore !== undefined ? `<p>📊 Score: ${g.homeScore} - ${g.awayScore}</p>` : ''}
+        <p>📌 Status: ${status === 'live' ? '🔴 Live now' : status === 'finished' ? '✅ Final' : '⏳ Upcoming'}</p>
+      </div>`;
+  }
+
+  function toggleDetails(idx) {
+    const el = document.getElementById('details-' + idx);
+    if (el) el.classList.toggle('open');
+  }
+
+  function toggleFav(e, home, away) {
+    e.stopPropagation();
+    [home, away].forEach(team => {
+      if (!team) return;
+      const i = favorites.indexOf(team);
+      if (i === -1) favorites.push(team);
+      else favorites.splice(i, 1);
+    });
+    localStorage.setItem('favs', JSON.stringify(favorites));
+    render(allGames);
+  }
+
+  function toggleFavOnly() {
+    favOnly = !favOnly;
+    document.getElementById('fav-btn').classList.toggle('on', favOnly);
+    render(allGames);
+  }
+
+  function toggleTheme() {
+    lightMode = !lightMode;
+    document.body.classList.toggle('light', lightMode);
+    document.getElementById('theme-btn').textContent = lightMode ? '🌙 Dark' : '☀️ Light';
+  }
+
+  function toggleNotifications() {
+    if (!notificationsOn) {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') {
+          notificationsOn = true;
+          document.getElementById('notif-btn').classList.add('on');
+        }
+      });
+    } else {
+      notificationsOn = false;
+      document.getElementById('notif-btn').classList.remove('on');
+    }
+  }
+
+  function checkNotifications(games) {
+    if (!notificationsOn) return;
+    games.filter(g => g.status === 'live').forEach(g => {
+      const key = g.home + g.away;
+      if (!notifiedGames.has(key)) {
+        notifiedGames.add(key);
+        new Notification('🔴 Live!', { body: `${g.home} vs ${g.away} started!` });
+      }
+    });
+  }
+
+  load('nba');
+  setInterval(() => load(currentLeague), 60000);
+</script>
+</body>
+</html>
